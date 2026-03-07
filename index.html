@@ -2,42 +2,48 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>QR Code Generator</title>
+<title>Gift Card QR Code Generator</title>
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-body { font-family: system-ui, sans-serif; padding: 2rem; background: #f8fafc; color: #1e293b; }
+body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #f8fafc; color: #1e293b; }
 .card { max-width: 900px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
 .header-box { border-bottom: 2px solid #f1f5f9; margin-bottom: 1.5rem; padding-bottom: 1rem; }
-.drop-zone { border: 2px dashed #cbd5e1; padding: 3rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: border-color 0.2s; }
-.drop-zone:hover { border-color: #3b82f6; }
+h1 { margin: 0; color: #0f172a; font-size: 1.75rem; }
+.sub-text { color: #64748b; margin-top: 0.5rem; font-size: 1rem; }
+.drop-zone { border: 2px dashed #cbd5e1; padding: 3rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: all 0.2s; }
+.drop-zone:hover { border-color: #3b82f6; background: #f1f7ff; }
 .controls { margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
 .btn { background: #059669; color: white; padding: 0.8rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; display: none; }
 .btn:hover { background: #047857; }
 .btn:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.7; }
-#output { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin-top: 2rem; }
+#output { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 2rem; }
 .qr-card { border: 1px solid #e2e8f0; padding: 1rem; text-align: center; border-radius: 8px; background: #fff; }
 .qr-card canvas { width: 100%; height: auto; margin-bottom: 0.5rem; }
 .label { font-size: 0.7rem; color: #64748b; word-break: break-all; font-family: monospace; }
-.status { font-size: 0.9rem; color: #64748b; }
+.status { font-size: 0.9rem; font-weight: 600; color: #334155; }
 </style>
 </head>
 <body>
 
 <div class="card">
-<div class="header-box">
-<h1>QR Generator for Gift Card Batch</h1>
-</div>
-<div class="drop-zone" id="dropZone">
-<input type="file" id="fileInput" accept=".csv" style="display:none">
-<p id="statusText">Click to upload or drag your CSV here</p>
-</div>
-<div class="controls">
-<div class="status" id="counter"></div>
-<button id="downloadBtn" class="btn">Download All as ZIP</button>
-</div>
-<div id="output"></div>
+    <div class="header-box">
+        <h1>Gift Card QR Code Generator</h1>
+        <p class="sub-text" id="targetDisplay">Upload the exported CSV file below</p>
+    </div>
+    
+    <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv" style="display:none">
+        <p id="statusText"><strong>Click to select</strong> or drag your CSV file here</p>
+    </div>
+    
+    <div class="controls">
+        <div class="status" id="counter"></div>
+        <button id="downloadBtn" class="btn">Download All as ZIP</button>
+    </div>
+
+    <div id="output"></div>
 </div>
 
 <script>
@@ -46,13 +52,13 @@ const dropZone = document.getElementById('dropZone');
 const output = document.getElementById('output');
 const downloadBtn = document.getElementById('downloadBtn');
 const counter = document.getElementById('counter');
+const targetDisplay = document.getElementById('targetDisplay');
 
 dropZone.onclick = () => fileInput.click();
 
 fileInput.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => processCSV(event.target.result);
     reader.readAsText(file);
@@ -61,14 +67,27 @@ fileInput.onchange = (e) => {
 function processCSV(text) {
     output.innerHTML = '';
     const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
+    if (rows.length < 2) {
+        alert("CSV appears to be empty or missing data rows.");
+        return;
+    }
+
+    // Dynamic Column Detection
+    const headers = rows[0].split(',').map(h => h.trim().toUpperCase());
+    let columnIndex = headers.indexOf("URL"); 
+
+    if (columnIndex === -1) {
+        columnIndex = 2; // Fallback to Column C
+        console.log("URL column not found in header, using Column C index.");
+    }
+
     let generatedCount = 0;
     
     rows.forEach((row, index) => {
-        // SKIP THE FIRST ROW (Header)
-        if (index === 0) return;
+        if (index === 0) return; // Skip Header
 
         const columns = row.split(',');
-        const val = columns[2] ? columns[2].trim() : null;
+        const val = columns[columnIndex] ? columns[columnIndex].trim() : null;
 
         if (val) {
             generatedCount++;
@@ -86,20 +105,19 @@ function processCSV(text) {
             new QRious({
                 element: canvas,
                 value: val,
-                size: 500, // Higher resolution for ZIP storage
+                size: 600, // Large size for high-quality printing
                 level: 'H' 
             });
         }
     });
 
-    counter.innerText = `Generated ${generatedCount} QR codes.`;
+    counter.innerText = `Successfully processed ${generatedCount} gift cards.`;
     if (generatedCount > 0) downloadBtn.style.display = 'block';
 }
 
 downloadBtn.onclick = async () => {
-    // Disable button to prevent multiple clicks during processing
     downloadBtn.disabled = true;
-    downloadBtn.innerText = "Processing ZIP...";
+    downloadBtn.innerText = "Creating ZIP...";
 
     const zip = new JSZip();
     const cards = document.querySelectorAll('.qr-card');
@@ -108,30 +126,24 @@ downloadBtn.onclick = async () => {
         const canvas = card.querySelector('canvas');
         const labelText = card.querySelector('.label').innerText;
         
-        // Clean the label for a safe filename
-        const safeName = labelText.replace(/[^a-z0-9]/gi, '_').substring(0, 30);
-        const fileName = `row_${i+2}_${safeName}.png`;
+        // Clean filename (first 20 chars of URL/Data)
+        const safeName = labelText.replace(/[^a-z0-9]/gi, '_').substring(0, 20);
+        const fileName = `GiftCard_${i+1}_${safeName}.png`;
         
-        // Convert canvas to Data URL and then to Base64 for JSZip
         const dataUrl = canvas.toDataURL("image/png");
         const base64Data = dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
-        
         zip.file(fileName, base64Data, {base64: true});
     });
 
-    // Generate the ZIP and trigger download
     zip.generateAsync({type: "blob"}).then((content) => {
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
-        link.download = "QR_Codes_Export.zip";
+        link.download = "Gift_Card_QRs.zip";
         link.click();
-        
-        // Reset button
         downloadBtn.disabled = false;
         downloadBtn.innerText = "Download All as ZIP";
     });
 };
 </script>
-
 </body>
 </html>
