@@ -12,6 +12,7 @@
     --page-width: 8.5in;
     --page-height: 11in;
     --grid-cols: 3;
+    --card-height: 3.1in;
     --header-font-family: system-ui, sans-serif;
     --header-font-size: 14px;
     --footer-font-family: system-ui, sans-serif;
@@ -120,7 +121,7 @@
 
   .status { font-size: 0.9rem; font-weight: 600; color: #334155; }
 
-  /* --- FIXED ALIGNMENT PRINT STYLES --- */
+  /* --- FIXED SIZE & ALIGNMENT PRINT STYLES --- */
   @media print {
     @page {
       size: var(--page-width) var(--page-height);
@@ -152,7 +153,8 @@
       box-sizing: border-box;
       display: grid !important;
       grid-template-columns: repeat(var(--grid-cols), 1fr);
-      grid-auto-rows: 1fr;
+      grid-auto-rows: var(--card-height); /* Set strict height per row */
+      align-content: start; /* Prevents single item rows from stretching vertically */
       gap: 0.2in;
       page-break-after: always;
       break-after: page;
@@ -164,7 +166,7 @@
       box-shadow: none;
       border-radius: 0;
       padding: 0.15in;
-      height: 100%;
+      height: var(--card-height); /* Enforce fixed height for partial sheets */
       width: 100%;
       box-sizing: border-box;
       display: flex;
@@ -348,7 +350,6 @@ fileInput.onchange = (e) => {
     reader.readAsText(file);
 };
 
-// Handle optional Logo image loading
 logoInput.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -404,7 +405,6 @@ function processCSV(text) {
         const container = document.createElement('div');
         container.className = 'qr-card';
         
-        // Custom Header Element
         if (headerVal) {
             const headerEl = document.createElement('div');
             headerEl.className = 'card-header-text';
@@ -415,13 +415,11 @@ function processCSV(text) {
         const canvas = document.createElement('canvas');
         container.appendChild(canvas);
 
-        // URL Label Element
         const label = document.createElement('div');
         label.className = 'label';
         label.innerText = val;
         container.appendChild(label);
 
-        // Custom Footer Element
         if (footerVal) {
             const footerEl = document.createElement('div');
             footerEl.className = 'card-footer-text';
@@ -431,21 +429,18 @@ function processCSV(text) {
 
         currentPageContainer.appendChild(container);
 
-        // Render QR Code
-        const qr = new QRious({
+        new QRious({
             element: canvas,
             value: val,
             size: 600, 
             level: 'H' 
         });
 
-        // Overlay Logo if loaded
         if (loadedLogoImg) {
             const ctx = canvas.getContext('2d');
-            const logoSize = canvas.width * 0.22; // 22% of canvas size
+            const logoSize = canvas.width * 0.22;
             const center = (canvas.width - logoSize) / 2;
             
-            // Draw white background block behind logo to ensure scannability
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(center - 4, center - 4, logoSize + 8, logoSize + 8);
             ctx.drawImage(loadedLogoImg, center, center, logoSize, logoSize);
@@ -478,22 +473,34 @@ function updatePrintLayout() {
     }
 
     let cols = 3;
-    if (count === '4') cols = 2;
-    if (count === '6') cols = 2;
-    if (count === '9') cols = 3;
-    if (count === '12') cols = 3;
-    if (count === '16') cols = 4;
+    let cardHeight = '3.1in';
+
+    if (count === '4') { 
+        cols = 2; 
+        cardHeight = '4.8in'; 
+    } else if (count === '6') { 
+        cols = 2; 
+        cardHeight = '3.2in'; 
+    } else if (count === '9') { 
+        cols = 3; 
+        cardHeight = '3.1in'; 
+    } else if (count === '12') { 
+        cols = 3; 
+        cardHeight = '2.3in'; 
+    } else if (count === '16') { 
+        cols = 4; 
+        cardHeight = '2.2in'; 
+    }
 
     root.style.setProperty('--grid-cols', cols);
+    root.style.setProperty('--card-height', cardHeight);
 
-    // Dynamic Typography CSS Variables
     root.style.setProperty('--header-font-family', headerFontFamilySelect.value);
     root.style.setProperty('--header-font-size', headerFontSizeSelect.value);
     root.style.setProperty('--footer-font-family', footerFontFamilySelect.value);
     root.style.setProperty('--footer-font-size', footerFontSizeSelect.value);
 }
 
-// Event Listeners for Live Updates
 itemsPerPageSelect.addEventListener('change', () => {
     updatePrintLayout();
     if (rawCsvText) processCSV(rawCsvText);
