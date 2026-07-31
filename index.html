@@ -12,7 +12,10 @@
     --page-width: 8.5in;
     --page-height: 11in;
     --grid-cols: 3;
-    --card-max-height: 2.8in;
+    --header-font-family: system-ui, sans-serif;
+    --header-font-size: 14px;
+    --footer-font-family: system-ui, sans-serif;
+    --footer-font-size: 11px;
   }
 
   body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #f8fafc; color: #1e293b; }
@@ -20,27 +23,50 @@
   .header-box { border-bottom: 2px solid #f1f5f9; margin-bottom: 1.5rem; padding-bottom: 1rem; }
   h1 { margin: 0; color: #0f172a; font-size: 1.75rem; }
   .sub-text { color: #64748b; margin-top: 0.5rem; font-size: 1rem; }
-  .drop-zone { border: 2px dashed #cbd5e1; padding: 3rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: all 0.2s; }
+  .drop-zone { border: 2px dashed #cbd5e1; padding: 2.5rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: all 0.2s; }
   .drop-zone:hover { border-color: #3b82f6; background: #f1f7ff; }
   
   .controls-panel { 
     margin-top: 1.5rem; 
-    padding: 1rem; 
+    padding: 1.25rem; 
     background: #f8fafc; 
     border: 1px solid #e2e8f0; 
     border-radius: 8px; 
     display: none; 
-    flex-wrap: wrap; 
+    flex-direction: column; 
     gap: 1.25rem; 
-    align-items: center; 
-    justify-content: flex-start; 
+  }
+
+  .controls-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+  }
+
+  .controls-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
   }
   
-  .control-group { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 500; }
-  .toggle-group { cursor: pointer; user-select: none; }
-  .toggle-group input[type="checkbox"] { width: 1.1rem; height: 1.1rem; cursor: pointer; }
-  select { padding: 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-family: inherit; }
+  .control-group { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; color: #475569; }
+  .control-group-row { display: flex; align-items: center; gap: 0.5rem; }
   
+  input[type="text"], select { 
+    padding: 0.5rem; 
+    border-radius: 6px; 
+    border: 1px solid #cbd5e1; 
+    background: white; 
+    font-family: inherit; 
+    font-size: 0.9rem;
+  }
+
+  input[type="file"].logo-input {
+    font-size: 0.85rem;
+  }
+
   .btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
   .btn { padding: 0.8rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
   .btn-zip { background: #059669; color: white; }
@@ -66,14 +92,30 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     overflow: hidden;
   }
   
-  .qr-card canvas { width: 100%; max-width: 200px; height: auto; margin-bottom: 0.25rem; }
-  .label { font-size: 0.7rem; color: #64748b; word-break: break-all; font-family: monospace; }
+  .card-header-text {
+    font-family: var(--header-font-family);
+    font-size: var(--header-font-size);
+    font-weight: bold;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+    word-break: break-word;
+  }
+
+  .card-footer-text {
+    font-family: var(--footer-font-family);
+    font-size: var(--footer-font-size);
+    color: #475569;
+    margin-top: 0.35rem;
+    word-break: break-word;
+  }
+
+  .qr-card canvas { width: 100%; max-width: 200px; height: auto; }
+  .label { font-size: 0.7rem; color: #64748b; word-break: break-all; font-family: monospace; margin-top: 0.2rem; }
   
-  /* Class applied when labels are toggled off */
   .hide-labels .label { display: none !important; }
 
   .status { font-size: 0.9rem; font-weight: 600; color: #334155; }
@@ -82,7 +124,7 @@
   @media print {
     @page {
       size: var(--page-width) var(--page-height);
-      margin: 0; /* Clear browser margins to ensure absolute grid positioning */
+      margin: 0;
     }
     
     html, body { 
@@ -128,13 +170,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       page-break-inside: avoid;
       break-inside: avoid;
     }
 
     .qr-card canvas {
-      max-height: 80%;
+      max-height: 65%;
       max-width: 80%;
       width: auto;
       height: auto;
@@ -143,7 +185,6 @@
 
     .label {
       font-size: 8pt;
-      margin-top: 4px;
       line-height: 1;
     }
   }
@@ -162,31 +203,101 @@
         <p id="statusText"><strong>Click to select</strong> or drag your CSV file here</p>
     </div>
 
-    <!-- Layout & Print Options -->
+    <!-- Layout & Customization Options -->
     <div class="controls-panel" id="controlsPanel">
-        <div class="control-group">
-            <label for="paperSize">Paper Size:</label>
-            <select id="paperSize">
-                <option value="letter">Letter (8.5" x 11")</option>
-                <option value="a4">A4 (210mm x 297mm)</option>
-                <option value="legal">Legal (8.5" x 14")</option>
-            </select>
+        <!-- Page Layout Settings -->
+        <div class="controls-section">
+            <div class="control-group">
+                <label for="paperSize">Paper Size</label>
+                <select id="paperSize">
+                    <option value="letter">Letter (8.5" x 11")</option>
+                    <option value="a4">A4 (210mm x 297mm)</option>
+                    <option value="legal">Legal (8.5" x 14")</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="itemsPerPage">QR Codes per Page</label>
+                <select id="itemsPerPage">
+                    <option value="4">4 per page (2 x 2)</option>
+                    <option value="6">6 per page (2 x 3)</option>
+                    <option value="9" selected>9 per page (3 x 3)</option>
+                    <option value="12">12 per page (3 x 4)</option>
+                    <option value="16">16 per page (4 x 4)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="logoInput">QR Center Logo</label>
+                <input type="file" id="logoInput" class="logo-input" accept="image/*">
+            </div>
+
+            <div class="control-group" style="justify-content: flex-end;">
+                <div class="control-group-row" style="margin-top: 1.25rem;">
+                    <input type="checkbox" id="toggleUrl" checked>
+                    <label for="toggleUrl" style="cursor:pointer;">Show URL Label</label>
+                </div>
+            </div>
         </div>
 
-        <div class="control-group">
-            <label for="itemsPerPage">QR Codes per Page:</label>
-            <select id="itemsPerPage">
-                <option value="4">4 per page (2 x 2)</option>
-                <option value="6">6 per page (2 x 3)</option>
-                <option value="9" selected>9 per page (3 x 3)</option>
-                <option value="12">12 per page (3 x 4)</option>
-                <option value="16">16 per page (4 x 4)</option>
-            </select>
+        <!-- Custom Header Settings -->
+        <div class="controls-section">
+            <div class="control-group" style="flex: 2; min-width: 200px;">
+                <label for="headerText">Custom Header Text</label>
+                <input type="text" id="headerText" placeholder="e.g. SPECIAL GIFT CARD">
+            </div>
+
+            <div class="control-group">
+                <label for="headerFontFamily">Header Font Style</label>
+                <select id="headerFontFamily">
+                    <option value="system-ui, sans-serif">Sans-Serif</option>
+                    <option value="'Georgia', serif">Serif (Georgia)</option>
+                    <option value="'Courier New', monospace">Monospace</option>
+                    <option value="'Impact', sans-serif">Impact</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="headerFontSize">Header Font Size</label>
+                <select id="headerFontSize">
+                    <option value="10px">10px</option>
+                    <option value="12px">12px</option>
+                    <option value="14px" selected>14px</option>
+                    <option value="16px">16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                </select>
+            </div>
         </div>
 
-        <div class="control-group toggle-group">
-            <input type="checkbox" id="toggleUrl" checked>
-            <label for="toggleUrl" style="cursor:pointer;">Show URL on printout</label>
+        <!-- Custom Footer Settings -->
+        <div class="controls-section">
+            <div class="control-group" style="flex: 2; min-width: 200px;">
+                <label for="footerText">Custom Footer Text</label>
+                <input type="text" id="footerText" placeholder="e.g. Non-refundable • Terms Apply">
+            </div>
+
+            <div class="control-group">
+                <label for="footerFontFamily">Footer Font Style</label>
+                <select id="footerFontFamily">
+                    <option value="system-ui, sans-serif">Sans-Serif</option>
+                    <option value="'Georgia', serif">Serif (Georgia)</option>
+                    <option value="'Courier New', monospace">Monospace</option>
+                    <option value="'Impact', sans-serif">Impact</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="footerFontSize">Footer Font Size</label>
+                <select id="footerFontSize">
+                    <option value="9px">9px</option>
+                    <option value="11px" selected>11px</option>
+                    <option value="13px">13px</option>
+                    <option value="15px">15px</option>
+                </select>
+            </div>
         </div>
     </div>
     
@@ -201,6 +312,7 @@
 
 <script>
 const fileInput = document.getElementById('fileInput');
+const logoInput = document.getElementById('logoInput');
 const dropZone = document.getElementById('dropZone');
 const output = document.getElementById('output');
 const downloadBtn = document.getElementById('downloadBtn');
@@ -212,7 +324,16 @@ const paperSizeSelect = document.getElementById('paperSize');
 const itemsPerPageSelect = document.getElementById('itemsPerPage');
 const toggleUrlCheckbox = document.getElementById('toggleUrl');
 
+const headerTextInput = document.getElementById('headerText');
+const headerFontFamilySelect = document.getElementById('headerFontFamily');
+const headerFontSizeSelect = document.getElementById('headerFontSize');
+
+const footerTextInput = document.getElementById('footerText');
+const footerFontFamilySelect = document.getElementById('footerFontFamily');
+const footerFontSizeSelect = document.getElementById('footerFontSize');
+
 let rawCsvText = "";
+let loadedLogoImg = null;
 
 dropZone.onclick = () => fileInput.click();
 
@@ -225,6 +346,26 @@ fileInput.onchange = (e) => {
         processCSV(rawCsvText);
     };
     reader.readAsText(file);
+};
+
+// Handle optional Logo image loading
+logoInput.onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                loadedLogoImg = img;
+                if (rawCsvText) processCSV(rawCsvText);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    } else {
+        loadedLogoImg = null;
+        if (rawCsvText) processCSV(rawCsvText);
+    }
 };
 
 function processCSV(text) {
@@ -250,8 +391,10 @@ function processCSV(text) {
     const itemsPerPage = parseInt(itemsPerPageSelect.value, 10);
     let currentPageContainer = null;
 
+    const headerVal = headerTextInput.value.trim();
+    const footerVal = footerTextInput.value.trim();
+
     validValues.forEach((val, index) => {
-        // Create a new print-page container every N items
         if (index % itemsPerPage === 0) {
             currentPageContainer = document.createElement('div');
             currentPageContainer.className = 'print-page';
@@ -260,21 +403,53 @@ function processCSV(text) {
 
         const container = document.createElement('div');
         container.className = 'qr-card';
+        
+        // Custom Header Element
+        if (headerVal) {
+            const headerEl = document.createElement('div');
+            headerEl.className = 'card-header-text';
+            headerEl.innerText = headerVal;
+            container.appendChild(headerEl);
+        }
+
         const canvas = document.createElement('canvas');
+        container.appendChild(canvas);
+
+        // URL Label Element
         const label = document.createElement('div');
         label.className = 'label';
         label.innerText = val;
-
-        container.appendChild(canvas);
         container.appendChild(label);
+
+        // Custom Footer Element
+        if (footerVal) {
+            const footerEl = document.createElement('div');
+            footerEl.className = 'card-footer-text';
+            footerEl.innerText = footerVal;
+            container.appendChild(footerEl);
+        }
+
         currentPageContainer.appendChild(container);
 
-        new QRious({
+        // Render QR Code
+        const qr = new QRious({
             element: canvas,
             value: val,
             size: 600, 
             level: 'H' 
         });
+
+        // Overlay Logo if loaded
+        if (loadedLogoImg) {
+            const ctx = canvas.getContext('2d');
+            const logoSize = canvas.width * 0.22; // 22% of canvas size
+            const center = (canvas.width - logoSize) / 2;
+            
+            // Draw white background block behind logo to ensure scannability
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(center - 4, center - 4, logoSize + 8, logoSize + 8);
+            ctx.drawImage(loadedLogoImg, center, center, logoSize, logoSize);
+        }
     });
 
     counter.innerText = `Successfully processed ${validValues.length} gift cards.`;
@@ -310,14 +485,29 @@ function updatePrintLayout() {
     if (count === '16') cols = 4;
 
     root.style.setProperty('--grid-cols', cols);
+
+    // Dynamic Typography CSS Variables
+    root.style.setProperty('--header-font-family', headerFontFamilySelect.value);
+    root.style.setProperty('--header-font-size', headerFontSizeSelect.value);
+    root.style.setProperty('--footer-font-family', footerFontFamilySelect.value);
+    root.style.setProperty('--footer-font-size', footerFontSizeSelect.value);
 }
 
+// Event Listeners for Live Updates
 itemsPerPageSelect.addEventListener('change', () => {
     updatePrintLayout();
     if (rawCsvText) processCSV(rawCsvText);
 });
 
 paperSizeSelect.addEventListener('change', updatePrintLayout);
+
+headerTextInput.addEventListener('input', () => { if (rawCsvText) processCSV(rawCsvText); });
+headerFontFamilySelect.addEventListener('change', updatePrintLayout);
+headerFontSizeSelect.addEventListener('change', updatePrintLayout);
+
+footerTextInput.addEventListener('input', () => { if (rawCsvText) processCSV(rawCsvText); });
+footerFontFamilySelect.addEventListener('change', updatePrintLayout);
+footerFontSizeSelect.addEventListener('change', updatePrintLayout);
 
 toggleUrlCheckbox.addEventListener('change', () => {
     if (toggleUrlCheckbox.checked) {
@@ -338,7 +528,7 @@ downloadBtn.onclick = async () => {
     
     cards.forEach((card, i) => {
         const canvas = card.querySelector('canvas');
-        const labelText = card.querySelector('.label').innerText;
+        const labelText = card.querySelector('.label') ? card.querySelector('.label').innerText : `card_${i+1}`;
         
         const safeName = labelText.replace(/[^a-z0-9]/gi, '_').substring(0, 20);
         const fileName = `GiftCard_${i+1}_${safeName}.png`;
