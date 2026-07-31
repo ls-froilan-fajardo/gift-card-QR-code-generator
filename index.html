@@ -3,26 +3,102 @@
 <head>
 <meta charset="UTF-8">
 <title>Gift Card QR Code Generator</title>
+<!-- External Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <style>
-body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #f8fafc; color: #1e293b; }
-.card { max-width: 900px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-.header-box { border-bottom: 2px solid #f1f5f9; margin-bottom: 1.5rem; padding-bottom: 1rem; }
-h1 { margin: 0; color: #0f172a; font-size: 1.75rem; }
-.sub-text { color: #64748b; margin-top: 0.5rem; font-size: 1rem; }
-.drop-zone { border: 2px dashed #cbd5e1; padding: 3rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: all 0.2s; }
-.drop-zone:hover { border-color: #3b82f6; background: #f1f7ff; }
-.controls { margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-.btn { background: #059669; color: white; padding: 0.8rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; display: none; }
-.btn:hover { background: #047857; }
-.btn:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.7; }
-#output { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 2rem; }
-.qr-card { border: 1px solid #e2e8f0; padding: 1rem; text-align: center; border-radius: 8px; background: #fff; }
-.qr-card canvas { width: 100%; height: auto; margin-bottom: 0.5rem; }
-.label { font-size: 0.7rem; color: #64748b; word-break: break-all; font-family: monospace; }
-.status { font-size: 0.9rem; font-weight: 600; color: #334155; }
+  :root {
+    --page-width: 8.5in;
+    --page-height: 11in;
+    --grid-cols: 3;
+  }
+
+  body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #f8fafc; color: #1e293b; }
+  .card { max-width: 950px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+  .header-box { border-bottom: 2px solid #f1f5f9; margin-bottom: 1.5rem; padding-bottom: 1rem; }
+  h1 { margin: 0; color: #0f172a; font-size: 1.75rem; }
+  .sub-text { color: #64748b; margin-top: 0.5rem; font-size: 1rem; }
+  .drop-zone { border: 2px dashed #cbd5e1; padding: 3rem; text-align: center; border-radius: 8px; background: #fdfdfd; cursor: pointer; transition: all 0.2s; }
+  .drop-zone:hover { border-color: #3b82f6; background: #f1f7ff; }
+  
+  .controls-panel { 
+    margin-top: 1.5rem; 
+    padding: 1rem; 
+    background: #f8fafc; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 8px; 
+    display: none; 
+    flex-wrap: wrap; 
+    gap: 1.25rem; 
+    align-items: center; 
+    justify-content: flex-start; 
+  }
+  
+  .control-group { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; font-weight: 500; }
+  .toggle-group { cursor: pointer; user-select: none; }
+  .toggle-group input[type="checkbox"] { width: 1.1rem; height: 1.1rem; cursor: pointer; }
+  select { padding: 0.5rem; border-radius: 6px; border: 1px solid #cbd5e1; background: white; font-family: inherit; }
+  
+  .btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
+  .btn { padding: 0.8rem 1.5rem; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-zip { background: #059669; color: white; }
+  .btn-zip:hover { background: #047857; }
+  .btn-print { background: #2563eb; color: white; }
+  .btn-print:hover { background: #1d4ed8; }
+  .btn:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.7; }
+  
+  #output { 
+    display: grid; 
+    grid-template-columns: repeat(var(--grid-cols), 1fr); 
+    gap: 1rem; 
+    margin-top: 2rem; 
+  }
+  
+  .qr-card { 
+    border: 1px solid #e2e8f0; 
+    padding: 0.75rem; 
+    text-align: center; 
+    border-radius: 8px; 
+    background: #fff; 
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .qr-card canvas { width: 100%; max-width: 200px; height: auto; margin-bottom: 0.25rem; }
+  .label { font-size: 0.7rem; color: #64748b; word-break: break-all; font-family: monospace; }
+  
+  /* Class applied when labels are toggled off */
+  .hide-labels .label { display: none !important; }
+
+  .status { font-size: 0.9rem; font-weight: 600; color: #334155; }
+
+  /* --- PRINT STYLES --- */
+  @media print {
+    @page {
+      size: var(--page-width) var(--page-height);
+      margin: 0.5in;
+    }
+    
+    body { background: white; padding: 0; margin: 0; color: black; }
+    .card { max-width: 100%; padding: 0; box-shadow: none; border: none; }
+    .header-box, .drop-zone, .controls-panel, .btn-group, .status { display: none !important; }
+    
+    #output { 
+      margin-top: 0;
+      gap: 0.5in;
+    }
+    
+    .qr-card { 
+      border: 1px dashed #ccc; 
+      box-shadow: none;
+    }
+  }
 </style>
 </head>
 <body>
@@ -37,12 +113,41 @@ h1 { margin: 0; color: #0f172a; font-size: 1.75rem; }
         <input type="file" id="fileInput" accept=".csv" style="display:none">
         <p id="statusText"><strong>Click to select</strong> or drag your CSV file here</p>
     </div>
+
+    <!-- Layout & Print Options -->
+    <div class="controls-panel" id="controlsPanel">
+        <div class="control-group">
+            <label for="paperSize">Paper Size:</label>
+            <select id="paperSize">
+                <option value="letter">Letter (8.5" x 11")</option>
+                <option value="a4">A4 (210mm x 297mm)</option>
+                <option value="legal">Legal (8.5" x 14")</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="itemsPerPage">QR Codes per Page:</label>
+            <select id="itemsPerPage">
+                <option value="4">4 per page (2 x 2)</option>
+                <option value="6">6 per page (2 x 3)</option>
+                <option value="9" selected>9 per page (3 x 3)</option>
+                <option value="12">12 per page (3 x 4)</option>
+                <option value="16">16 per page (4 x 4)</option>
+            </select>
+        </div>
+
+        <div class="control-group toggle-group">
+            <input type="checkbox" id="toggleUrl" checked>
+            <label for="toggleUrl" style="cursor:pointer;">Show URL on printout</label>
+        </div>
+    </div>
     
-    <div class="controls">
-        <div class="status" id="counter"></div>
-        <button id="downloadBtn" class="btn">Download All as ZIP</button>
+    <div class="btn-group">
+        <button id="downloadBtn" class="btn btn-zip" style="display:none;">Download All as ZIP</button>
+        <button id="printBtn" class="btn btn-print" style="display:none;">Print Sheet</button>
     </div>
 
+    <div class="status" id="counter" style="margin-top:1rem;"></div>
     <div id="output"></div>
 </div>
 
@@ -51,8 +156,13 @@ const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 const output = document.getElementById('output');
 const downloadBtn = document.getElementById('downloadBtn');
+const printBtn = document.getElementById('printBtn');
 const counter = document.getElementById('counter');
-const targetDisplay = document.getElementById('targetDisplay');
+const controlsPanel = document.getElementById('controlsPanel');
+
+const paperSizeSelect = document.getElementById('paperSize');
+const itemsPerPageSelect = document.getElementById('itemsPerPage');
+const toggleUrlCheckbox = document.getElementById('toggleUrl');
 
 dropZone.onclick = () => fileInput.click();
 
@@ -78,7 +188,6 @@ function processCSV(text) {
 
     if (columnIndex === -1) {
         columnIndex = 2; // Fallback to Column C
-        console.log("URL column not found in header, using Column C index.");
     }
 
     let generatedCount = 0;
@@ -105,16 +214,68 @@ function processCSV(text) {
             new QRious({
                 element: canvas,
                 value: val,
-                size: 600, // Large size for high-quality printing
+                size: 600, 
                 level: 'H' 
             });
         }
     });
 
     counter.innerText = `Successfully processed ${generatedCount} gift cards.`;
-    if (generatedCount > 0) downloadBtn.style.display = 'block';
+    if (generatedCount > 0) {
+        downloadBtn.style.display = 'inline-block';
+        printBtn.style.display = 'inline-block';
+        controlsPanel.style.display = 'flex';
+        updatePrintLayout(); // Set default layout specs
+    }
 }
 
+// Layout Configuration Handler
+function updatePrintLayout() {
+    const root = document.documentElement;
+    const paper = paperSizeSelect.value;
+    const count = itemsPerPageSelect.value;
+
+    // Set Page Dimension Variables for Print CSS
+    if (paper === 'a4') {
+        root.style.setProperty('--page-width', '210mm');
+        root.style.setProperty('--page-height', '297mm');
+    } else if (paper === 'legal') {
+        root.style.setProperty('--page-width', '8.5in');
+        root.style.setProperty('--page-height', '14in');
+    } else { // Letter
+        root.style.setProperty('--page-width', '8.5in');
+        root.style.setProperty('--page-height', '11in');
+    }
+
+    // Set Column Count Grid
+    let cols = 3;
+    if (count === '4') cols = 2;
+    if (count === '6') cols = 2;
+    if (count === '9') cols = 3;
+    if (count === '12') cols = 3;
+    if (count === '16') cols = 4;
+
+    root.style.setProperty('--grid-cols', cols);
+}
+
+// Label Visibility Handler
+toggleUrlCheckbox.addEventListener('change', () => {
+    if (toggleUrlCheckbox.checked) {
+        output.classList.remove('hide-labels');
+    } else {
+        output.classList.add('hide-labels');
+    }
+});
+
+paperSizeSelect.addEventListener('change', updatePrintLayout);
+itemsPerPageSelect.addEventListener('change', updatePrintLayout);
+
+// Print Trigger
+printBtn.onclick = () => {
+    window.print();
+};
+
+// ZIP Download Trigger
 downloadBtn.onclick = async () => {
     downloadBtn.disabled = true;
     downloadBtn.innerText = "Creating ZIP...";
@@ -126,7 +287,6 @@ downloadBtn.onclick = async () => {
         const canvas = card.querySelector('canvas');
         const labelText = card.querySelector('.label').innerText;
         
-        // Clean filename (first 20 chars of URL/Data)
         const safeName = labelText.replace(/[^a-z0-9]/gi, '_').substring(0, 20);
         const fileName = `GiftCard_${i+1}_${safeName}.png`;
         
