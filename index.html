@@ -4,9 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gift Card QR Code Generator</title>
+
+<!-- Tailwind CSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- External Offline/Online Libraries -->
 <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
 
 <style>
   :root {
@@ -14,24 +18,31 @@
     --page-height: 11in;
     --grid-cols: 3;
     --grid-rows: 3;
+    --card-height: 3.1in;
     --header-font-family: system-ui, sans-serif;
     --header-font-size: 14px;
     --footer-font-family: system-ui, sans-serif;
     --footer-font-size: 11px;
   }
 
-  body { 
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-    background-color: #f8fafc; 
-    color: #0f172a; 
+  /* --- ON-SCREEN PREVIEW GRID STYLES --- */
+  .preview-page-grid {
+    display: grid !important;
+    grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr)) !important;
+    gap: 1rem;
+    padding: 1.25rem;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   }
 
-  /* Fixed On-Screen Preview Card Alignment */
   .qr-card { 
     border: 1px solid #e2e8f0; 
-    padding: 0.85rem; 
+    padding: 0.75rem; 
     text-align: center; 
-    border-radius: 12px; 
+    border-radius: 0.5rem; 
     background: #ffffff; 
     box-sizing: border-box;
     display: flex;
@@ -39,15 +50,11 @@
     align-items: center;
     justify-content: space-between;
     overflow: hidden;
-    min-height: 260px;
-    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    min-height: 220px;
+    height: 100%;
+    width: 100%;
   }
 
-  .qr-card:hover {
-    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08);
-  }
-  
   .card-header-text {
     font-family: var(--header-font-family);
     font-size: var(--header-font-size);
@@ -56,7 +63,6 @@
     margin-bottom: 0.35rem;
     word-break: break-word;
     line-height: 1.25;
-    text-align: center;
     width: 100%;
   }
 
@@ -67,47 +73,47 @@
     margin-top: 0.35rem;
     word-break: break-word;
     line-height: 1.25;
-    text-align: center;
     width: 100%;
   }
 
-  /* Fixed Canvas Aspect Ratio */
+  /* Container wrapper ensuring QR code canvas scales cleanly within its parent */
+  .qr-canvas-wrapper {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+    padding: 0.25rem;
+    overflow: hidden;
+  }
+
   .qr-card canvas { 
-    width: 100%; 
-    max-width: 180px; 
+    max-width: 100%; 
+    max-height: 100%;
+    width: auto; 
     height: auto; 
     aspect-ratio: 1 / 1;
     object-fit: contain;
-    margin: 0.25rem 0;
   }
 
   .url-label { 
-    font-size: 0.725rem; 
+    font-size: 0.7rem; 
     color: #64748b; 
     word-break: break-all; 
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
-    margin-top: 0.2rem; 
-    text-align: center;
+    margin-top: 0.25rem;
+    line-height: 1;
     width: 100%;
   }
   
-  .hide-labels .url-label { 
-    display: none !important; 
-  }
+  .hide-labels .url-label { display: none !important; }
 
-  /* Isolated Page Wrapper for Screen Display */
-  .print-page {
-    display: grid;
-    grid-template-columns: repeat(var(--grid-cols), 1fr);
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  /* Fixed Print View Grid Alignment */
+  /* --- PRINT-ONLY STYLES & LAYOUT ENGINE --- */
   @media print {
     @page {
       size: var(--page-width) var(--page-height);
-      margin: 0 !important;
+      margin: 0;
     }
     
     html, body { 
@@ -115,17 +121,23 @@
       padding: 0 !important; 
       margin: 0 !important; 
       color: #000000 !important; 
-      width: var(--page-width) !important;
-      height: var(--page-height) !important;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-      overflow: hidden !important;
+      width: 100% !important;
+      height: auto !important;
+      overflow: visible !important;
     }
 
-    .no-print, header, .app-card, .controls-panel, .btn-group, .drop-zone, .status-bar, #statusBadge { 
+    /* Hide UI elements on print */
+    .no-print, 
+    #controlsPanel, 
+    #dropZone, 
+    #statusBadge, 
+    .btn-group, 
+    #counter,
+    .border-b { 
       display: none !important; 
     }
-    
+
+    /* Make output container take full printable canvas */
     #output { 
       display: block !important;
       margin: 0 !important;
@@ -133,24 +145,23 @@
       width: 100% !important;
     }
 
-    /* Fixed Strict Bounding Box Print Page */
     .print-page {
       width: var(--page-width) !important;
       height: var(--page-height) !important;
       padding: 0.4in !important;
       box-sizing: border-box !important;
       display: grid !important;
-      grid-template-columns: repeat(var(--grid-cols), 1fr) !important;
-      grid-template-rows: repeat(var(--grid-rows), 1fr) !important;
+      grid-template-columns: repeat(var(--grid-cols), minmax(0, 1fr)) !important;
+      grid-template-rows: repeat(var(--grid-rows), minmax(0, 1fr)) !important;
       align-content: start !important;
-      justify-content: center !important;
       gap: 0.2in !important;
       page-break-after: always !important;
       break-after: page !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
       overflow: hidden !important;
-      margin-bottom: 0 !important;
+      box-shadow: none !important;
+      border: none !important;
+      margin: 0 !important;
+      background: white !important;
     }
     
     .qr-card { 
@@ -160,205 +171,183 @@
       padding: 0.15in !important;
       height: 100% !important;
       width: 100% !important;
-      max-height: 100% !important;
-      min-height: 0 !important;
       box-sizing: border-box !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: space-between !important;
-      overflow: hidden !important;
-      position: relative !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      min-height: 0 !important;
     }
 
-    /* Corner Trim Crop Marks */
-    .qr-card::before, .qr-card::after {
-      content: "";
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      pointer-events: none;
-    }
-    .qr-card::before {
-      top: -1px;
-      left: -1px;
-      border-top: 1.5px solid #000;
-      border-left: 1.5px solid #000;
-    }
-    .qr-card::after {
-      bottom: -1px;
-      right: -1px;
-      border-bottom: 1.5px solid #000;
-      border-right: 1.5px solid #000;
+    .qr-canvas-wrapper {
+      flex: 1 1 auto !important;
+      max-height: 70% !important;
+      width: 100% !important;
     }
 
     .qr-card canvas {
-      max-height: 65% !important;
-      max-width: 85% !important;
-      flex-shrink: 1 !important;
+      max-height: 100% !important;
+      max-width: 100% !important;
       width: auto !important;
       height: auto !important;
-      aspect-ratio: 1 / 1 !important;
       object-fit: contain !important;
     }
 
-    .card-header-text, .card-footer-text, .url-label {
-      flex-shrink: 0 !important;
-    }
-
     .url-label {
-      font-size: 7.5pt !important;
-      line-height: 1.1 !important;
+      font-size: 8pt !important;
+      margin-top: 2px !important;
+      line-height: 1 !important;
     }
   }
 </style>
 </head>
-<body class="min-h-screen pb-12">
+<body class="bg-slate-100 min-h-screen p-4 sm:p-8 text-slate-800">
 
-<div class="max-w-5xl mx-auto px-4 py-8 app-card">
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
-        
-        <!-- Header Section -->
-        <div class="border-b border-slate-100 pb-5 mb-6 no-print">
-            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Gift Card QR Code Generator</h1>
-            <p class="text-slate-500 text-sm sm:text-base mt-1" id="targetDisplay">Upload your exported CSV file below to auto-detect the "url" column and generate codes.</p>
-        </div>
-        
-        <!-- Drag & Drop CSV Upload Area -->
-        <div class="drop-zone border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-400 cursor-pointer transition-all no-print" id="dropZone">
-            <input type="file" id="fileInput" accept=".csv" class="hidden">
-            <div class="flex flex-col items-center justify-center gap-2">
-                <svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                </svg>
-                <p class="text-slate-700 font-semibold text-sm sm:text-base">Click to select CSV or drag & drop here</p>
-                <p class="text-slate-400 text-xs">Supports standard CSV exports (Auto-detects "url" column header)</p>
-            </div>
-        </div>
-
-        <!-- Detection Status Indicator -->
-        <div id="statusBadge" class="hidden my-4 p-3.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-medium flex items-center gap-2.5 no-print">
-            <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-            </svg>
-            <span id="detectionMessage">Scanning CSV headers...</span>
-        </div>
-
-        <div class="controls-panel mt-6 p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-5 no-print" id="controlsPanel">
-            
-            <!-- Row 1: Layout, Paper Size, Logo & URL Toggle -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pb-4 border-b border-slate-200">
-                <div class="flex flex-col gap-1.5">
-                    <label for="paperSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Paper Size</label>
-                    <select id="paperSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="letter">Letter (8.5" x 11")</option>
-                        <option value="a4">A4 (210mm x 297mm)</option>
-                        <option value="legal">Legal (8.5" x 14")</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="itemsPerPage" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Codes per Page</label>
-                    <select id="itemsPerPage" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="4">4 per page (2 x 2)</option>
-                        <option value="6">6 per page (2 x 3)</option>
-                        <option value="9" selected>9 per page (3 x 3)</option>
-                        <option value="12">12 per page (3 x 4)</option>
-                        <option value="16">16 per page (4 x 4)</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="logoInput" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Center Logo</label>
-                    <input type="file" id="logoInput" accept="image/*" class="text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
-                </div>
-
-                <div class="flex items-center gap-2 py-2">
-                    <input type="checkbox" id="toggleUrl" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
-                    <label for="toggleUrl" class="text-xs font-bold text-slate-700 cursor-pointer">Show URL Label</label>
-                </div>
-            </div>
-
-            <!-- Row 2: Custom Header Controls -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-slate-200">
-                <div class="flex flex-col gap-1.5">
-                    <label for="headerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Text</label>
-                    <input type="text" id="headerText" placeholder="e.g. SPECIAL GIFT CARD" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="headerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Style</label>
-                    <select id="headerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="system-ui, sans-serif">Sans-Serif</option>
-                        <option value="'Georgia', serif">Serif (Georgia)</option>
-                        <option value="'Courier New', monospace">Monospace</option>
-                        <option value="'Impact', sans-serif">Impact</option>
-                        <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="headerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Size</label>
-                    <select id="headerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="10px">10px</option>
-                        <option value="12px">12px</option>
-                        <option value="14px" selected>14px</option>
-                        <option value="16px">16px</option>
-                        <option value="18px">18px</option>
-                        <option value="20px">20px</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Row 3: Custom Footer Controls -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div class="flex flex-col gap-1.5">
-                    <label for="footerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Text</label>
-                    <input type="text" id="footerText" placeholder="e.g. Non-refundable • Terms Apply" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="footerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Style</label>
-                    <select id="footerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="system-ui, sans-serif">Sans-Serif</option>
-                        <option value="'Georgia', serif">Serif (Georgia)</option>
-                        <option value="'Courier New', monospace">Monospace</option>
-                        <option value="'Impact', sans-serif">Impact</option>
-                        <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
-                    </select>
-                </div>
-
-                <div class="flex flex-col gap-1.5">
-                    <label for="footerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Size</label>
-                    <select id="footerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
-                        <option value="9px">9px</option>
-                        <option value="11px" selected>11px</option>
-                        <option value="13px">13px</option>
-                        <option value="15px">15px</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Action Buttons & Status Indicator -->
-        <div class="btn-group flex flex-wrap gap-3 mt-6 no-print">
-            <button id="downloadBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors hidden flex items-center gap-2 text-sm shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                Download All as ZIP
-            </button>
-            <button id="printBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors hidden flex items-center gap-2 text-sm shadow-sm">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                Print Sheet
-            </button>
-        </div>
-
-        <div class="status-bar text-sm font-semibold text-slate-700 mt-4 no-print" id="counter"></div>
+<div class="max-w-5xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-xl border border-slate-200/80 no-print" id="appCard">
+    <!-- Header Section -->
+    <div class="border-b border-slate-100 pb-5 mb-6">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Gift Card QR Code Generator</h1>
+        <p class="text-slate-500 text-sm sm:text-base mt-1" id="targetDisplay">Upload your exported CSV file below to auto-detect the "url" column and generate codes.</p>
     </div>
 
-    <!-- Output Grid Container -->
-    <div id="output" class="mt-8"></div>
+    <!-- Drag & Drop CSV Upload Area -->
+    <div class="drop-zone border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-400 cursor-pointer transition-all" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv" class="hidden">
+        <div class="flex flex-col items-center justify-center gap-2">
+            <svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <p class="text-slate-700 font-semibold text-sm sm:text-base">Click to select CSV or drag & drop here</p>
+            <p class="text-slate-400 text-xs">Supports standard CSV exports (Auto-detects "url" column header)</p>
+        </div>
+    </div>
+
+    <!-- Detection Status Indicator -->
+    <div id="statusBadge" class="hidden my-4 p-3.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-900 text-xs sm:text-sm font-medium flex items-center gap-2.5">
+        <svg class="w-5 h-5 text-indigo-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+        <span id="detectionMessage">Scanning CSV headers...</span>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="controls-panel mt-6 p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-5 hidden" id="controlsPanel">
+        
+        <!-- Row 1: Layout, Paper Size, Logo & URL Toggle -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pb-4 border-b border-slate-200">
+            <div class="flex flex-col gap-1.5">
+                <label for="paperSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Paper Size</label>
+                <select id="paperSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="letter">Letter (8.5" x 11")</option>
+                    <option value="a4">A4 (210mm x 297mm)</option>
+                    <option value="legal">Legal (8.5" x 14")</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="itemsPerPage" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Codes per Page</label>
+                <select id="itemsPerPage" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="4">4 per page (2 x 2)</option>
+                    <option value="6">6 per page (2 x 3)</option>
+                    <option value="9" selected>9 per page (3 x 3)</option>
+                    <option value="12">12 per page (3 x 4)</option>
+                    <option value="16">16 per page (4 x 4)</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="logoInput" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Center Logo</label>
+                <input type="file" id="logoInput" accept="image/*" class="text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+            </div>
+
+            <div class="flex items-center gap-2 py-2">
+                <input type="checkbox" id="toggleUrl" checked class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                <label for="toggleUrl" class="text-xs font-bold text-slate-700 cursor-pointer">Show URL Label</label>
+            </div>
+        </div>
+
+        <!-- Row 2: Custom Header Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-slate-200">
+            <div class="flex flex-col gap-1.5">
+                <label for="headerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Text</label>
+                <input type="text" id="headerText" placeholder="e.g. SPECIAL GIFT CARD" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="headerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Style</label>
+                <select id="headerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="system-ui, sans-serif">Sans-Serif</option>
+                    <option value="'Georgia', serif">Serif (Georgia)</option>
+                    <option value="'Courier New', monospace">Monospace</option>
+                    <option value="'Impact', sans-serif">Impact</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="headerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Size</label>
+                <select id="headerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="10px">10px</option>
+                    <option value="12px">12px</option>
+                    <option value="14px" selected>14px</option>
+                    <option value="16px">16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Row 3: Custom Footer Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="flex flex-col gap-1.5">
+                <label for="footerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Text</label>
+                <input type="text" id="footerText" placeholder="e.g. Non-refundable • Terms Apply" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="footerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Style</label>
+                <select id="footerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="system-ui, sans-serif">Sans-Serif</option>
+                    <option value="'Georgia', serif">Serif (Georgia)</option>
+                    <option value="'Courier New', monospace">Monospace</option>
+                    <option value="'Impact', sans-serif">Impact</option>
+                    <option value="'Trebuchet MS', sans-serif">Trebuchet</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <label for="footerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Size</label>
+                <select id="footerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                    <option value="9px">9px</option>
+                    <option value="11px" selected>11px</option>
+                    <option value="13px">13px</option>
+                    <option value="15px">15px</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons & Status Indicator -->
+    <div class="btn-group flex flex-wrap gap-3 mt-6">
+        <button id="downloadBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors hidden flex items-center gap-2 text-sm shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download All as ZIP
+        </button>
+        <button id="printBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors hidden flex items-center gap-2 text-sm shadow-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+            Print Sheet
+        </button>
+    </div>
+
+    <div class="status-bar text-sm font-semibold text-slate-700 mt-4" id="counter"></div>
 </div>
 
+<!-- Output Grid Container (Placed outside UI card so hiding UI during print never affects output) -->
+<div id="output" class="max-w-5xl mx-auto mt-6"></div>
+
+<!-- APP LOGIC -->
 <script>
 const fileInput = document.getElementById('fileInput');
 const logoInput = document.getElementById('logoInput');
@@ -387,7 +376,7 @@ let rawCsvText = "";
 let loadedLogoImg = null;
 let parsedValues = [];
 
-// Drag & Drop Interactions
+// Drag and drop setup
 dropZone.onclick = () => fileInput.click();
 
 dropZone.addEventListener('dragover', (e) => {
@@ -402,17 +391,18 @@ dropZone.addEventListener('dragleave', () => {
 dropZone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/50');
-    if (e.dataTransfer.files.length > 0) {
+    if (e.dataTransfer.files.length) {
         fileInput.files = e.dataTransfer.files;
-        handleCsvFile(e.dataTransfer.files[0]);
+        handleFile(e.dataTransfer.files[0]);
     }
 });
 
 fileInput.onchange = (e) => {
-    if (e.target.files[0]) handleCsvFile(e.target.files[0]);
+    if (e.target.files.length) handleFile(e.target.files[0]);
 };
 
-function handleCsvFile(file) {
+function handleFile(file) {
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         rawCsvText = event.target.result;
@@ -421,7 +411,7 @@ function handleCsvFile(file) {
     reader.readAsText(file);
 }
 
-// Logo File Handler
+// Logo Loader
 logoInput.onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -430,105 +420,85 @@ logoInput.onchange = (e) => {
             const img = new Image();
             img.onload = () => {
                 loadedLogoImg = img;
-                if (rawCsvText) processCSV(rawCsvText);
+                if (parsedValues.length > 0) renderQRCodesAsync();
             };
             img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     } else {
         loadedLogoImg = null;
-        if (rawCsvText) processCSV(rawCsvText);
+        if (parsedValues.length > 0) renderQRCodesAsync();
     }
 };
 
-function detectUrlColumnIndex(headerRow) {
-    const headers = headerRow.split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
-    
-    // 1. Case-insensitive exact match for "url"
-    for (let i = 0; i < headers.length; i++) {
-        if (headers[i].toLowerCase() === "url") {
-            return { index: i, name: headers[i], matchType: 'exact' };
-        }
-    }
-
-    // 2. Keyword fallback search for "url", "link", or "website"
-    const targetKeywords = ["url", "link", "website"];
-    for (let i = 0; i < headers.length; i++) {
-        const lower = headers[i].toLowerCase();
-        for (const kw of targetKeywords) {
-            if (lower.includes(kw)) {
-                return { index: i, name: headers[i], matchType: 'keyword' };
-            }
-        }
-    }
-
-    // 3. Fallback to Column C (index 2)
-    const fallbackName = headers[2] ? headers[2] : "Column C";
-    return { index: 2, name: fallbackName, matchType: 'fallback' };
-}
-
+// Process CSV with Case-Insensitive Header Auto-Detection
 function processCSV(text) {
     const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
     if (rows.length < 2) {
-        alert("CSV appears to be empty or missing data rows.");
+        alert("CSV file appears to be empty or missing data rows.");
         return;
     }
 
-    const detection = detectUrlColumnIndex(rows[0]);
-    const columnIndex = detection.index;
+    // Inspect First Row Headers
+    const rawHeaders = rows[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+    const lowerHeaders = rawHeaders.map(h => h.toLowerCase());
+
+    // Auto-detect "url" header (also checks for variants like "link" or "website")
+    let columnIndex = lowerHeaders.indexOf("url");
+    if (columnIndex === -1) columnIndex = lowerHeaders.indexOf("link");
+    if (columnIndex === -1) columnIndex = lowerHeaders.indexOf("website");
 
     statusBadge.classList.remove('hidden');
-    const colLetter = String.fromCharCode(65 + columnIndex);
-    const colNumber = columnIndex + 1;
-    
-    if (detection.matchType === 'exact' || detection.matchType === 'keyword') {
-        detectionMessage.innerHTML = `Auto-detected column header <strong>"${detection.name}"</strong> at Column ${colLetter} (Col ${colNumber}). Header row excluded.`;
+    if (columnIndex !== -1) {
+        detectionMessage.innerHTML = `Auto-detected target column <strong>"${rawHeaders[columnIndex]}"</strong> (Column ${String.fromCharCode(65 + columnIndex)})`;
     } else {
-        detectionMessage.innerHTML = `Column header "url" not found. Falling back to <strong>Column C</strong> (Col ${colNumber}). Header row excluded.`;
+        columnIndex = 2; // Fallback to Column C
+        detectionMessage.innerHTML = `Header "url" not found. Defaulting to <strong>Column C</strong>.`;
     }
 
     parsedValues = [];
     rows.forEach((row, index) => {
-        if (index === 0) return;
-        
-        const columns = row.split(',');
-        const rawVal = columns[columnIndex] ? columns[columnIndex].trim().replace(/^["']|["']$/g, '') : null;
-        if (rawVal) parsedValues.push(rawVal);
+        if (index === 0) return; // Skip Header
+        const columns = row.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+        const val = columns[columnIndex] ? columns[columnIndex].trim() : null;
+        if (val) parsedValues.push(val);
     });
 
     if (parsedValues.length === 0) {
-        alert("No valid URLs or data entries found in the detected column.");
+        alert("No valid data found in target column.");
         return;
     }
 
     renderQRCodesAsync();
 }
 
+// Non-Blocking Asynchronous Render Function
 async function renderQRCodesAsync() {
     output.innerHTML = '';
-    counter.innerText = `Generating 0 of ${parsedValues.length} codes...`;
-    downloadBtn.style.display = 'none';
-    printBtn.style.display = 'none';
+    counter.innerText = `Generating 0 of ${parsedValues.length} QR codes...`;
+    downloadBtn.classList.add('hidden');
+    printBtn.classList.add('hidden');
 
     const itemsPerPage = parseInt(itemsPerPageSelect.value, 10);
-    const headerVal = headerTextInput.value.trim();
-    const footerVal = footerTextInput.value.trim();
     let currentPageContainer = null;
 
-    const chunkSize = 15;
+    const headerVal = headerTextInput.value.trim();
+    const footerVal = footerTextInput.value.trim();
+    const chunkSize = 15; // Small batch size prevents browser UI locks
 
     for (let i = 0; i < parsedValues.length; i++) {
         const val = parsedValues[i];
 
         if (i % itemsPerPage === 0) {
             currentPageContainer = document.createElement('div');
-            currentPageContainer.className = 'print-page';
+            currentPageContainer.className = 'print-page preview-page-grid';
             output.appendChild(currentPageContainer);
         }
 
         const container = document.createElement('div');
         container.className = 'qr-card';
 
+        // Optional Header
         if (headerVal) {
             const headerEl = document.createElement('div');
             headerEl.className = 'card-header-text';
@@ -536,14 +506,21 @@ async function renderQRCodesAsync() {
             container.appendChild(headerEl);
         }
 
-        const canvas = document.createElement('canvas');
-        container.appendChild(canvas);
+        // Wrapper for canvas to fit card boundaries smoothly
+        const canvasWrapper = document.createElement('div');
+        canvasWrapper.className = 'qr-canvas-wrapper';
 
+        const canvas = document.createElement('canvas');
+        canvasWrapper.appendChild(canvas);
+        container.appendChild(canvasWrapper);
+
+        // URL Label
         const label = document.createElement('div');
         label.className = 'url-label';
         label.innerText = val;
         container.appendChild(label);
 
+        // Optional Footer
         if (footerVal) {
             const footerEl = document.createElement('div');
             footerEl.className = 'card-footer-text';
@@ -553,6 +530,7 @@ async function renderQRCodesAsync() {
 
         currentPageContainer.appendChild(container);
 
+        // Render QRious Code
         new QRious({
             element: canvas,
             value: val,
@@ -560,6 +538,7 @@ async function renderQRCodesAsync() {
             level: 'H'
         });
 
+        // Overlay Logo if Present
         if (loadedLogoImg) {
             const ctx = canvas.getContext('2d');
             const logoSize = canvas.width * 0.22;
@@ -570,24 +549,27 @@ async function renderQRCodesAsync() {
             ctx.drawImage(loadedLogoImg, center, center, logoSize, logoSize);
         }
 
+        // Allow UI event loop to breath
         if (i % chunkSize === 0) {
-            counter.innerText = `Processing ${i + 1} of ${parsedValues.length}...`;
+            counter.innerText = `Generating ${i + 1} of ${parsedValues.length} QR codes...`;
             await new Promise(resolve => setTimeout(resolve, 0));
         }
     }
 
-    counter.innerText = `Successfully generated ${parsedValues.length} gift card QR codes.`;
-    downloadBtn.style.display = 'inline-flex';
-    printBtn.style.display = 'inline-flex';
-    controlsPanel.style.display = 'block';
+    counter.innerText = `Successfully processed ${parsedValues.length} gift card codes.`;
+    downloadBtn.classList.remove('hidden');
+    printBtn.classList.remove('hidden');
+    controlsPanel.classList.remove('hidden');
     updatePrintLayout();
 }
 
+// Layout Engine Manager
 function updatePrintLayout() {
     const root = document.documentElement;
     const paper = paperSizeSelect.value;
     const count = itemsPerPageSelect.value;
 
+    // Set Dimensions for Paper Selection
     if (paper === 'a4') {
         root.style.setProperty('--page-width', '210mm');
         root.style.setProperty('--page-height', '297mm');
@@ -599,36 +581,35 @@ function updatePrintLayout() {
         root.style.setProperty('--page-height', '11in');
     }
 
+    // Set Columns, Rows, and Card Height Grid Rules
     let cols = 3;
     let rows = 3;
+    let cardHeight = '3.1in';
 
     if (count === '4') { 
-        cols = 2; 
-        rows = 2;
+        cols = 2; rows = 2; cardHeight = '4.8in'; 
     } else if (count === '6') { 
-        cols = 2; 
-        rows = 3;
+        cols = 2; rows = 3; cardHeight = '3.2in'; 
     } else if (count === '9') { 
-        cols = 3; 
-        rows = 3;
+        cols = 3; rows = 3; cardHeight = '3.1in'; 
     } else if (count === '12') { 
-        cols = 3; 
-        rows = 4;
+        cols = 3; rows = 4; cardHeight = '2.3in'; 
     } else if (count === '16') { 
-        cols = 4; 
-        rows = 4;
+        cols = 4; rows = 4; cardHeight = '2.2in'; 
     }
 
     root.style.setProperty('--grid-cols', cols);
     root.style.setProperty('--grid-rows', rows);
+    root.style.setProperty('--card-height', cardHeight);
 
+    // Apply Live Typography Styles
     root.style.setProperty('--header-font-family', headerFontFamilySelect.value);
     root.style.setProperty('--header-font-size', headerFontSizeSelect.value);
     root.style.setProperty('--footer-font-family', footerFontFamilySelect.value);
     root.style.setProperty('--footer-font-size', footerFontSizeSelect.value);
 }
 
-// Option Change Event Handlers
+// Controls Event Listeners
 itemsPerPageSelect.addEventListener('change', () => {
     updatePrintLayout();
     if (parsedValues.length > 0) renderQRCodesAsync();
@@ -655,26 +636,26 @@ toggleUrlCheckbox.addEventListener('change', () => {
 // Print Action
 printBtn.onclick = () => window.print();
 
-// Bulk ZIP Downloader
+// ZIP Archive Export Action
 downloadBtn.onclick = async () => {
     downloadBtn.disabled = true;
     downloadBtn.innerText = "Creating ZIP...";
 
     const zip = new JSZip();
     const cards = document.querySelectorAll('.qr-card');
-
+    
     for (let i = 0; i < cards.length; i++) {
         const canvas = cards[i].querySelector('canvas');
-        const labelText = cards[i].querySelector('.url-label') ? cards[i].querySelector('.url-label').innerText : `item_${i+1}`;
-
+        const labelText = cards[i].querySelector('.url-label') ? cards[i].querySelector('.url-label').innerText : `card_${i+1}`;
+        
         const safeName = labelText.replace(/[^a-z0-9]/gi, '_').substring(0, 20);
         const fileName = `GiftCard_${i+1}_${safeName}.png`;
-
+        
         const dataUrl = canvas.toDataURL("image/png");
         const base64Data = dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
         zip.file(fileName, base64Data, {base64: true});
 
-        if (i % 30 === 0) {
+        if (i % 50 === 0) {
             await new Promise(resolve => setTimeout(resolve, 0));
         }
     }
@@ -685,10 +666,7 @@ downloadBtn.onclick = async () => {
         link.download = "Gift_Card_QRs.zip";
         link.click();
         downloadBtn.disabled = false;
-        downloadBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Download All as ZIP
-        `;
+        downloadBtn.innerText = "Download All as ZIP";
     });
 };
 </script>
