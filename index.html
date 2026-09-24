@@ -13,25 +13,25 @@
     --page-width: 8.5in;
     --page-height: 11in;
     --grid-cols: 3;
-    --card-height: 3.1in;
+    --grid-rows: 3;
     --header-font-family: system-ui, sans-serif;
     --header-font-size: 14px;
     --footer-font-family: system-ui, sans-serif;
     --footer-font-size: 11px;
   }
 
-  /* Screen Layout Styles */
   body { 
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
     background-color: #f8fafc; 
     color: #0f172a; 
   }
 
+  /* Fixed On-Screen Preview Card Alignment */
   .qr-card { 
     border: 1px solid #e2e8f0; 
-    padding: 0.75rem; 
+    padding: 0.85rem; 
     text-align: center; 
-    border-radius: 8px; 
+    border-radius: 12px; 
     background: #ffffff; 
     box-sizing: border-box;
     display: flex;
@@ -39,6 +39,13 @@
     align-items: center;
     justify-content: space-between;
     overflow: hidden;
+    min-height: 260px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .qr-card:hover {
+    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08);
   }
   
   .card-header-text {
@@ -46,45 +53,57 @@
     font-size: var(--header-font-size);
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
     word-break: break-word;
-    line-height: 1.2;
+    line-height: 1.25;
+    text-align: center;
+    width: 100%;
   }
 
   .card-footer-text {
     font-family: var(--footer-font-family);
     font-size: var(--footer-font-size);
     color: #475569;
-    margin-top: 0.25rem;
+    margin-top: 0.35rem;
     word-break: break-word;
-    line-height: 1.2;
+    line-height: 1.25;
+    text-align: center;
+    width: 100%;
   }
 
+  /* Fixed Canvas Aspect Ratio */
   .qr-card canvas { 
     width: 100%; 
     max-width: 180px; 
     height: auto; 
+    aspect-ratio: 1 / 1;
     object-fit: contain;
+    margin: 0.25rem 0;
   }
 
   .url-label { 
-    font-size: 0.7rem; 
+    font-size: 0.725rem; 
     color: #64748b; 
     word-break: break-all; 
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
     margin-top: 0.2rem; 
+    text-align: center;
+    width: 100%;
   }
   
   .hide-labels .url-label { 
     display: none !important; 
   }
 
-  #output {
+  /* Isolated Page Wrapper for Screen Display */
+  .print-page {
     display: grid;
     grid-template-columns: repeat(var(--grid-cols), 1fr);
     gap: 1rem;
+    margin-bottom: 1.5rem;
   }
 
+  /* Fixed Print View Grid Alignment */
   @media print {
     @page {
       size: var(--page-width) var(--page-height);
@@ -96,13 +115,14 @@
       padding: 0 !important; 
       margin: 0 !important; 
       color: #000000 !important; 
-      width: 100% !important;
-      height: 100% !important;
+      width: var(--page-width) !important;
+      height: var(--page-height) !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+      overflow: hidden !important;
     }
 
-    .no-print, header, .app-card, .controls-panel, .btn-group, .drop-zone, .status-bar { 
+    .no-print, header, .app-card, .controls-panel, .btn-group, .drop-zone, .status-bar, #statusBadge { 
       display: none !important; 
     }
     
@@ -110,9 +130,10 @@
       display: block !important;
       margin: 0 !important;
       padding: 0 !important;
+      width: 100% !important;
     }
 
-    /* Fixed Height Print Grid Page */
+    /* Fixed Strict Bounding Box Print Page */
     .print-page {
       width: var(--page-width) !important;
       height: var(--page-height) !important;
@@ -120,12 +141,16 @@
       box-sizing: border-box !important;
       display: grid !important;
       grid-template-columns: repeat(var(--grid-cols), 1fr) !important;
-      grid-auto-rows: var(--card-height) !important; /* Strict height allocation */
-      align-content: start !important; /* Prevents last page items from stretching */
+      grid-template-rows: repeat(var(--grid-rows), 1fr) !important;
+      align-content: start !important;
+      justify-content: center !important;
       gap: 0.2in !important;
       page-break-after: always !important;
       break-after: page !important;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
       overflow: hidden !important;
+      margin-bottom: 0 !important;
     }
     
     .qr-card { 
@@ -133,15 +158,16 @@
       box-shadow: none !important;
       border-radius: 0 !important;
       padding: 0.15in !important;
-      height: var(--card-height) !important; /* Fixed uniform height */
+      height: 100% !important;
       width: 100% !important;
+      max-height: 100% !important;
+      min-height: 0 !important;
       box-sizing: border-box !important;
       display: flex !important;
       flex-direction: column !important;
       align-items: center !important;
       justify-content: space-between !important;
-      page-break-inside: avoid !important;
-      break-inside: avoid !important;
+      overflow: hidden !important;
       position: relative !important;
     }
 
@@ -167,16 +193,22 @@
     }
 
     .qr-card canvas {
-      max-height: 60% !important;
-      max-width: 80% !important;
+      max-height: 65% !important;
+      max-width: 85% !important;
+      flex-shrink: 1 !important;
       width: auto !important;
       height: auto !important;
+      aspect-ratio: 1 / 1 !important;
       object-fit: contain !important;
+    }
+
+    .card-header-text, .card-footer-text, .url-label {
+      flex-shrink: 0 !important;
     }
 
     .url-label {
       font-size: 7.5pt !important;
-      line-height: 1 !important;
+      line-height: 1.1 !important;
     }
   }
 </style>
@@ -218,7 +250,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end pb-4 border-b border-slate-200">
                 <div class="flex flex-col gap-1.5">
                     <label for="paperSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Paper Size</label>
-                    <select id="paperSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="paperSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="letter">Letter (8.5" x 11")</option>
                         <option value="a4">A4 (210mm x 297mm)</option>
                         <option value="legal">Legal (8.5" x 14")</option>
@@ -227,7 +259,7 @@
 
                 <div class="flex flex-col gap-1.5">
                     <label for="itemsPerPage" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Codes per Page</label>
-                    <select id="itemsPerPage" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="itemsPerPage" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="4">4 per page (2 x 2)</option>
                         <option value="6">6 per page (2 x 3)</option>
                         <option value="9" selected>9 per page (3 x 3)</option>
@@ -251,12 +283,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pb-4 border-b border-slate-200">
                 <div class="flex flex-col gap-1.5">
                     <label for="headerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Text</label>
-                    <input type="text" id="headerText" placeholder="e.g. SPECIAL GIFT CARD" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <input type="text" id="headerText" placeholder="e.g. SPECIAL GIFT CARD" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="flex flex-col gap-1.5">
                     <label for="headerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Style</label>
-                    <select id="headerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="headerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="system-ui, sans-serif">Sans-Serif</option>
                         <option value="'Georgia', serif">Serif (Georgia)</option>
                         <option value="'Courier New', monospace">Monospace</option>
@@ -267,7 +299,7 @@
 
                 <div class="flex flex-col gap-1.5">
                     <label for="headerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Header Font Size</label>
-                    <select id="headerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="headerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="10px">10px</option>
                         <option value="12px">12px</option>
                         <option value="14px" selected>14px</option>
@@ -282,12 +314,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="flex flex-col gap-1.5">
                     <label for="footerText" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Text</label>
-                    <input type="text" id="footerText" placeholder="e.g. Non-refundable • Terms Apply" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <input type="text" id="footerText" placeholder="e.g. Non-refundable • Terms Apply" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="flex flex-col gap-1.5">
                     <label for="footerFontFamily" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Style</label>
-                    <select id="footerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="footerFontFamily" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="system-ui, sans-serif">Sans-Serif</option>
                         <option value="'Georgia', serif">Serif (Georgia)</option>
                         <option value="'Courier New', monospace">Monospace</option>
@@ -298,7 +330,7 @@
 
                 <div class="flex flex-col gap-1.5">
                     <label for="footerFontSize" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Footer Font Size</label>
-                    <select id="footerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800">
+                    <select id="footerFontSize" class="w-full p-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
                         <option value="9px">9px</option>
                         <option value="11px" selected>11px</option>
                         <option value="13px">13px</option>
@@ -328,7 +360,6 @@
 </div>
 
 <script>
-// DOM Elements Initialization
 const fileInput = document.getElementById('fileInput');
 const logoInput = document.getElementById('logoInput');
 const dropZone = document.getElementById('dropZone');
@@ -352,7 +383,6 @@ const footerTextInput = document.getElementById('footerText');
 const footerFontFamilySelect = document.getElementById('footerFontFamily');
 const footerFontSizeSelect = document.getElementById('footerFontSize');
 
-// State Variables
 let rawCsvText = "";
 let loadedLogoImg = null;
 let parsedValues = [];
@@ -412,7 +442,6 @@ logoInput.onchange = (e) => {
 };
 
 function detectUrlColumnIndex(headerRow) {
-    // Split header row cleanly handling simple CSV formatting
     const headers = headerRow.split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
     
     // 1. Case-insensitive exact match for "url"
@@ -445,13 +474,11 @@ function processCSV(text) {
         return;
     }
 
-    // Auto-detect URL column header
     const detection = detectUrlColumnIndex(rows[0]);
     const columnIndex = detection.index;
 
-    // Render Status Indicator Badge
     statusBadge.classList.remove('hidden');
-    const colLetter = String.fromCharCode(65 + columnIndex); // A, B, C, etc.
+    const colLetter = String.fromCharCode(65 + columnIndex);
     const colNumber = columnIndex + 1;
     
     if (detection.matchType === 'exact' || detection.matchType === 'keyword') {
@@ -462,7 +489,7 @@ function processCSV(text) {
 
     parsedValues = [];
     rows.forEach((row, index) => {
-        if (index === 0) return; // Skip Header Row
+        if (index === 0) return;
         
         const columns = row.split(',');
         const rawVal = columns[columnIndex] ? columns[columnIndex].trim().replace(/^["']|["']$/g, '') : null;
@@ -488,12 +515,11 @@ async function renderQRCodesAsync() {
     const footerVal = footerTextInput.value.trim();
     let currentPageContainer = null;
 
-    const chunkSize = 15; // Batch size to yield main execution thread
+    const chunkSize = 15;
 
     for (let i = 0; i < parsedValues.length; i++) {
         const val = parsedValues[i];
 
-        // Group into printable page grid sections
         if (i % itemsPerPage === 0) {
             currentPageContainer = document.createElement('div');
             currentPageContainer.className = 'print-page';
@@ -503,7 +529,6 @@ async function renderQRCodesAsync() {
         const container = document.createElement('div');
         container.className = 'qr-card';
 
-        // Optional Custom Header
         if (headerVal) {
             const headerEl = document.createElement('div');
             headerEl.className = 'card-header-text';
@@ -511,17 +536,14 @@ async function renderQRCodesAsync() {
             container.appendChild(headerEl);
         }
 
-        // Canvas for QR Code
         const canvas = document.createElement('canvas');
         container.appendChild(canvas);
 
-        // URL Label Element
         const label = document.createElement('div');
         label.className = 'url-label';
         label.innerText = val;
         container.appendChild(label);
 
-        // Optional Custom Footer
         if (footerVal) {
             const footerEl = document.createElement('div');
             footerEl.className = 'card-footer-text';
@@ -531,7 +553,6 @@ async function renderQRCodesAsync() {
 
         currentPageContainer.appendChild(container);
 
-        // Render QR Code using QRious
         new QRious({
             element: canvas,
             value: val,
@@ -539,7 +560,6 @@ async function renderQRCodesAsync() {
             level: 'H'
         });
 
-        // Apply center logo overlay if uploaded
         if (loadedLogoImg) {
             const ctx = canvas.getContext('2d');
             const logoSize = canvas.width * 0.22;
@@ -550,7 +570,6 @@ async function renderQRCodesAsync() {
             ctx.drawImage(loadedLogoImg, center, center, logoSize, logoSize);
         }
 
-        // Yield CPU thread to keep UI responsive on large CSVs
         if (i % chunkSize === 0) {
             counter.innerText = `Processing ${i + 1} of ${parsedValues.length}...`;
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -560,7 +579,7 @@ async function renderQRCodesAsync() {
     counter.innerText = `Successfully generated ${parsedValues.length} gift card QR codes.`;
     downloadBtn.style.display = 'inline-flex';
     printBtn.style.display = 'inline-flex';
-    controlsPanel.style.display = 'flex';
+    controlsPanel.style.display = 'block';
     updatePrintLayout();
 }
 
@@ -569,7 +588,6 @@ function updatePrintLayout() {
     const paper = paperSizeSelect.value;
     const count = itemsPerPageSelect.value;
 
-    // Apply Paper Dimension Variables
     if (paper === 'a4') {
         root.style.setProperty('--page-width', '210mm');
         root.style.setProperty('--page-height', '297mm');
@@ -581,31 +599,29 @@ function updatePrintLayout() {
         root.style.setProperty('--page-height', '11in');
     }
 
-    // Grid Columns & Fixed Heights
     let cols = 3;
-    let cardHeight = '3.1in';
+    let rows = 3;
 
     if (count === '4') { 
         cols = 2; 
-        cardHeight = '4.8in'; 
+        rows = 2;
     } else if (count === '6') { 
         cols = 2; 
-        cardHeight = '3.2in'; 
+        rows = 3;
     } else if (count === '9') { 
         cols = 3; 
-        cardHeight = '3.1in'; 
+        rows = 3;
     } else if (count === '12') { 
         cols = 3; 
-        cardHeight = '2.3in'; 
+        rows = 4;
     } else if (count === '16') { 
         cols = 4; 
-        cardHeight = '2.2in'; 
+        rows = 4;
     }
 
     root.style.setProperty('--grid-cols', cols);
-    root.style.setProperty('--card-height', cardHeight);
+    root.style.setProperty('--grid-rows', rows);
 
-    // Apply Typography Style Variables
     root.style.setProperty('--header-font-family', headerFontFamilySelect.value);
     root.style.setProperty('--header-font-size', headerFontSizeSelect.value);
     root.style.setProperty('--footer-font-family', footerFontFamilySelect.value);
@@ -639,6 +655,7 @@ toggleUrlCheckbox.addEventListener('change', () => {
 // Print Action
 printBtn.onclick = () => window.print();
 
+// Bulk ZIP Downloader
 downloadBtn.onclick = async () => {
     downloadBtn.disabled = true;
     downloadBtn.innerText = "Creating ZIP...";
